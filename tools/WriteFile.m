@@ -10,6 +10,9 @@ function result = WriteFile(~, args)
     content = args.content;
 
     try
+        % Create snapshot before overwriting
+        SnapshotFile(filepath);
+
         fid = fopen(filepath, 'w');
         if fid == -1
             error('matl_agent:WriteFile:openFailed', 'Could not open file for writing.');

@@ -37,7 +37,7 @@ function result = SearchFiles(~, args)
         if isempty(foundFiles)
             result = sprintf('No files found matching pattern: %s', pattern);
         else
-            result = sprintf('Found pattern "%s" in:\n%s', pattern, strjoin(foundFiles, '\n'));
+            result = sprintf('Found pattern "%s" in:\n%s', pattern, strjoin(foundFiles, newline));
         end
     catch ME
         result = sprintf('Failed to search files: %s', ME.message);

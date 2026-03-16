@@ -59,59 +59,118 @@ classdef AgentLoop < handle
                         continue;
                     end
 
-                    % Check if the last message was from user. If not, don't ping LLM.
-                    if ~strcmp(t3Messages{end}.role, 'user') && ~strcmp(t3Messages{end}.role, 'tool')
+                    % Only process if the last message was from user
+                    lastMsg = t3Messages{end};
+                    if ~strcmp(lastMsg.role, 'user')
                         continue;
                     end
 
-                    % Prepend T1 (System config) and T2 (Session state) to the payload
-                    fullMessages = [obj.Context.T1_Config, t3Messages];
-
-                    % Execute the LLM Call
-                    % (We don't pass tool schemas in Phase 1's mock tools just yet,
-                    % but the engine supports it.)
-                    response = obj.Client.chatCompletion(fullMessages);
-
-                    % Process response
-                    if isfield(response, 'choices') && ~isempty(response.choices)
-                        replyMsg = response.choices(1).message;
-                        obj.Context.push(replyMsg);
-
-                        % Notify listener that text was received
-                        if isfield(replyMsg, 'content') && ~isempty(replyMsg.content)
-                            notify(obj, 'ResponseReceived', AgentEventData(struct('text', replyMsg.content)));
-                        end
-
-                        % Check for tool calls (OpenAI format)
-                        if isfield(replyMsg, 'tool_calls')
-                            for tIdx = 1:length(replyMsg.tool_calls)
-                                tCall = replyMsg.tool_calls(tIdx);
-                                toolName = tCall.function.name;
-                                toolArgsJSON = tCall.function.arguments;
-
-                                % Dispatch tool execution
-                                resultStr = obj.Tools.dispatch(toolName, toolArgsJSON);
-
-                                % Push tool result back to context
-                                toolResultMsg = struct('role', 'tool', ...
-                                    'tool_call_id', tCall.id, ...
-                                    'name', toolName, ...
-                                    'content', resultStr);
-                                obj.Context.push(toolResultMsg);
-                            end
-
-                            % Note: A real implementation would loop back to LLM here
-                            % automatically after tool completion until it finishes.
-                            % For scaffolding, we just wait for next REPL loop.
-                        end
+                    % Check for special commands
+                    if startsWith(lastMsg.content, '/')
+                        obj.handleCommand(lastMsg.content);
+                        continue;
                     end
+
+                    % Execute the agent interaction (LLM + Tools)
+                    obj.processInteraction();
 
                 catch ME
                     % Fire error event instead of printing
                     errData = struct('message', ME.message, 'identifier', ME.identifier);
                     notify(obj, 'AgentError', AgentEventData(errData));
-                    % We don't exit the loop on error, just let the user try again
                 end
+            end
+        end
+
+        function processInteraction(obj)
+            % processInteraction Handles the multi-turn LLM <-> Tool loop.
+            
+            interacting = true;
+            while interacting
+                % Prepend T1 (System config) and T2 (Session state) to the payload
+                t3Messages = obj.Context.T3_Conversation;
+                fullMessages = [obj.Context.T1_Config, t3Messages];
+
+                % Execute the LLM Call with tool schemas
+                toolSchemas = obj.Tools.getToolSchemas();
+                response = obj.Client.chatCompletion(fullMessages, toolSchemas);
+
+                % Process response
+                if isfield(response, 'choices') && ~isempty(response.choices)
+                    replyMsg = response.choices(1).message;
+                    
+                    % Ensure 'content' exists even if null (for ContextManager compatibility)
+                    if ~isfield(replyMsg, 'content') || isempty(replyMsg.content)
+                        replyMsg.content = ''; 
+                    end
+                    
+                    obj.Context.push(replyMsg);
+
+                    % Notify listener that text was received
+                    if ~isempty(replyMsg.content)
+                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', replyMsg.content)));
+                    end
+
+                    % Check for tool calls (OpenAI format)
+                    if isfield(replyMsg, 'tool_calls') && ~isempty(replyMsg.tool_calls)
+                        for tIdx = 1:length(replyMsg.tool_calls)
+                            tCall = replyMsg.tool_calls(tIdx);
+                            toolName = tCall.function.name;
+                            toolArgsJSON = tCall.function.arguments;
+
+                            % Dispatch tool execution
+                            resultStr = obj.Tools.dispatch(toolName, toolArgsJSON);
+
+                            % Push tool result back to context
+                            toolResultMsg = struct('role', 'tool', ...
+                                'tool_call_id', tCall.id, ...
+                                'name', toolName, ...
+                                'content', resultStr);
+                            obj.Context.push(toolResultMsg);
+                        end
+                        % Continue loop to let LLM see tool results
+                    else
+                        % No more tool calls, interaction finished
+                        interacting = false;
+                    end
+                else
+                    interacting = false;
+                end
+            end
+        end
+
+        function handleCommand(obj, cmdLine)
+            % handleCommand Processes local /commands.
+            parts = strsplit(cmdLine);
+            cmd = parts{1};
+
+            switch cmd
+                case {'/exit', '/quit'}
+                    obj.IsRunning = false;
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Exiting MATL-AGENT...')));
+
+                case '/mode'
+                    if length(parts) > 1
+                        obj.setMode(parts{2});
+                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Mode set to: %s', obj.Mode))));
+                    else
+                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Current mode: %s', obj.Mode))));
+                    end
+
+                case '/compact'
+                    obj.Context.maybeCompact(); % In a real app, maybe force it here
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Manual compaction triggered.')));
+
+                case '/history'
+                    histText = 'Conversation History:\n';
+                    for i = 1:length(obj.Context.T3_Conversation)
+                        m = obj.Context.T3_Conversation{i};
+                        histText = [histText, sprintf('[%s]: %s\n', m.role, m.content(1:min(end, 50)))]; %#ok<AGROW>
+                    end
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', histText)));
+
+                otherwise
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Unknown command: %s', cmd))));
             end
         end
 

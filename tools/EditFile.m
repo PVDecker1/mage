@@ -11,6 +11,9 @@ function result = EditFile(~, args)
     try
         content = fileread(filepath);
         if contains(content, args.old_str)
+            % Create snapshot before overwriting
+            SnapshotFile(filepath);
+
             content = strrep(content, args.old_str, args.new_str);
             fid = fopen(filepath, 'w');
             if fid == -1

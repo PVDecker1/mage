@@ -34,8 +34,15 @@ classdef TestToolEngine < matlab.unittest.TestCase
             started = false;
             completed = false;
 
-            addlistener(testCase.AgentLoop, 'ToolCallStarted', @(~,~) assignin('caller', 'started', true));
-            addlistener(testCase.AgentLoop, 'ToolCallCompleted', @(~,~) assignin('caller', 'completed', true));
+            addlistener(testCase.AgentLoop, 'ToolCallStarted', @(~,~) setStarted());
+            addlistener(testCase.AgentLoop, 'ToolCallCompleted', @(~,~) setCompleted());
+
+            function setStarted()
+                started = true;
+            end
+            function setCompleted()
+                completed = true;
+            end
 
             res = engine.dispatch('dummy', '{"val": "ok"}');
 

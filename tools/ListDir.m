@@ -23,9 +23,9 @@ function result = ListDir(~, args)
         resStr = sprintf('Contents of %s:\n', dirPath);
         for i = 1:length(listing)
             if listing(i).isdir
-                resStr = [resStr, listing(i).name, '/\n'];
+                resStr = sprintf('%s%s/\n', resStr, listing(i).name);
             else
-                resStr = [resStr, listing(i).name, '\n'];
+                resStr = sprintf('%s%s\n', resStr, listing(i).name);
             end
         end
         result = resStr;

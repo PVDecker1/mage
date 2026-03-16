@@ -22,11 +22,11 @@ classdef TestAgentLoop < matlab.unittest.TestCase
 
             % Mock listener to catch the event and explicitly kill the loop
             fired = false;
-            addlistener(agent, 'UserInputRequired', @(~,~) setAndExit(agent));
+            addlistener(agent, 'UserInputRequired', @(~,~) setAndExit());
 
-            function setAndExit(a)
-                assignin('caller', 'fired', true);
-                a.IsRunning = false; % Break loop
+            function setAndExit()
+                fired = true;
+                agent.IsRunning = false; % Break loop
             end
 
             agent.run();

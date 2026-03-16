@@ -5,8 +5,13 @@ classdef ContextManager < handle
     %   T3: In-memory conversation (gets auto-compacted when full)
     %   T4: Retrieved files/knowledge (injected per-turn)
 
+    events
+        ContextCompacted
+    end
+
     properties
         Config        % Token limits and other settings
+        Agent         % Reference to AgentLoop
         T1_Config     % struct or array containing AGENT.md / config.json content
         T2_Session    % struct managing .agent/session.json state
         T3_Conversation % cell array of turn dicts/structs (OpenAI msg format)
@@ -16,15 +21,19 @@ classdef ContextManager < handle
     end
 
     methods
-        function obj = ContextManager(cfg)
+        function obj = ContextManager(cfg, agent)
             % ContextManager Constructor.
             %   Initializes the tiered context based on config limits.
 
             if nargin < 1
                 cfg = struct();
             end
+            if nargin < 2
+                agent = [];
+            end
 
             obj.Config = cfg;
+            obj.Agent = agent;
 
             % Setup defaults if not provided in config
             if isfield(cfg, 'context_budget')
@@ -43,14 +52,42 @@ classdef ContextManager < handle
             obj.T2_Session = struct('ledger', '', 'open_files', {{}}, 'branch', 'main');
             obj.T3_Conversation = {};
             obj.T4_Retrieved = struct();
+            
+            % Try to load session if exists
+            obj.loadSession();
+        end
+
+        function loadSession(obj)
+            % loadSession Loads existing T2 session state from .agent/session.json
+            sessionPath = fullfile(pwd, '.agent', 'session.json');
+            if isfile(sessionPath)
+                try
+                    txt = fileread(sessionPath);
+                    obj.T2_Session = jsondecode(txt);
+                catch
+                    % Fallback to fresh session
+                end
+            end
         end
 
         function push(obj, messageStruct)
             % push Append a message to the T3 conversation history.
             %   messageStruct must follow OpenAI format (role, content).
 
-            if ~isstruct(messageStruct) || ~isfield(messageStruct, 'role') || ~isfield(messageStruct, 'content')
-                error('matl_agent:ContextManager:invalidFormat', 'Message must be a struct with role and content fields.');
+            if ~isstruct(messageStruct) || ~isfield(messageStruct, 'role')
+                error('matl_agent:ContextManager:invalidFormat', 'Message must be a struct with at least a role field.');
+            end
+            
+            % Allow missing content if tool_calls or tool_call_id is present
+            if ~isfield(messageStruct, 'content') && ...
+               ~isfield(messageStruct, 'tool_calls') && ...
+               ~isfield(messageStruct, 'tool_call_id')
+                error('matl_agent:ContextManager:missingContent', 'Message must have content unless it is a tool call/result.');
+            end
+
+            % Ensure content field exists for consistency if it's missing
+            if ~isfield(messageStruct, 'content')
+                messageStruct.content = '';
             end
 
             obj.T3_Conversation{end+1} = messageStruct;
@@ -65,8 +102,37 @@ classdef ContextManager < handle
 
             if currentEstimate >= thresholdTokens
                 % Perform pseudo-compaction by summarizing T3 into T2
-                obj.T2_Session.ledger = sprintf('Compacted %d turns.', length(obj.T3_Conversation));
+                summary = sprintf('Compacted %d turns on %s.', length(obj.T3_Conversation), datestr(now));
+                obj.T2_Session.ledger = [obj.T2_Session.ledger, newline, summary];
                 obj.T3_Conversation = {}; % Clear conversation to reset budget
+                
+                obj.saveSession();
+                
+                % Fire event on itself
+                notify(obj, 'ContextCompacted', AgentEventData(struct('message', summary)));
+                
+                % If we have a reference to the agent, fire there too for UI listeners
+                if ~isempty(obj.Agent)
+                    notify(obj.Agent, 'ContextCompacted', AgentEventData(struct('message', summary)));
+                end
+            end
+        end
+
+        function saveSession(obj)
+            % saveSession Persists the T2_Session state to .agent/session.json.
+            
+            agentFolder = fullfile(pwd, '.agent');
+            if ~isfolder(agentFolder), mkdir(agentFolder); end
+            
+            sessionPath = fullfile(agentFolder, 'session.json');
+            try
+                fid = fopen(sessionPath, 'w');
+                if fid ~= -1
+                    fprintf(fid, '%s', jsonencode(obj.T2_Session));
+                    fclose(fid);
+                end
+            catch
+                % Fail silently on save errors
             end
         end
 
@@ -91,6 +157,13 @@ classdef ContextManager < handle
                 msg = obj.T3_Conversation{i};
                 if ischar(msg.content)
                     totalChars = totalChars + length(msg.content);
+                end
+                % Account for tool call metadata (rough estimate)
+                if isfield(msg, 'tool_calls') && ~isempty(msg.tool_calls)
+                    totalChars = totalChars + 200; 
+                end
+                if isfield(msg, 'tool_call_id')
+                    totalChars = totalChars + 50;
                 end
             end
 

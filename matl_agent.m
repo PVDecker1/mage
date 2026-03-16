@@ -40,7 +40,7 @@ function agent = matl_agent()
     agent = AgentLoop(cfg);
 
     % Initialize and Inject Dependencies
-    agent.Context = ContextManager(cfg);
+    agent.Context = ContextManager(cfg, agent);
     agent.Context.T1_Config = {struct('role', 'system', 'content', agentMdContent)};
 
     agent.Client = LLMClient(cfg);
