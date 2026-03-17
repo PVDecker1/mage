@@ -1,12 +1,14 @@
 function result = ListDir(~, args)
     % ListDir Lists the contents of a directory.
-    %   args must contain 'path'.
+    %   args should contain 'dir' (or 'path' for backward compatibility).
 
-    if ~isfield(args, 'path')
-        args.path = pwd;
+    if isfield(args, 'dir')
+        dirPath = args.dir;
+    elseif isfield(args, 'path')
+        dirPath = args.path;
+    else
+        dirPath = pwd;
     end
-
-    dirPath = args.path;
 
     if ~isfolder(dirPath)
         error('matl_agent:ListDir:notDir', 'Directory not found: %s', dirPath);

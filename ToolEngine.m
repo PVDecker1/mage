@@ -55,7 +55,7 @@ classdef ToolEngine < handle
                 struct('name', name, 'description', desc, 'parameters', params));
 
             % Parameters helper (simple object with properties)
-            p = @(props, required) struct('type', 'object', 'properties', props, 'required', {required});
+            p = @(props, required) struct('type', 'object', 'properties', {props}, 'required', {required});
 
             % Define individual tool schemas
             s = [];

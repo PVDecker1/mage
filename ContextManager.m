@@ -55,6 +55,9 @@ classdef ContextManager < handle
             
             % Try to load session if exists
             obj.loadSession();
+            
+            % Initial save to ensure .agent/session.json exists
+            obj.saveSession();
         end
 
         function loadSession(obj)

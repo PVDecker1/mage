@@ -33,6 +33,25 @@ classdef AgentLoop < handle
             obj.Config = cfg;
             obj.IsRunning = false;
             obj.Mode = 'code'; % Default mode
+            
+            % Ensure .agent folder exists for logging
+            if ~isfolder('.agent'), mkdir('.agent'); end
+        end
+
+        function logEvent(obj, type, data)
+            % logEvent Appends an event to .agent/events.jsonl
+            try
+                event = struct('timestamp', datestr(now, 'yyyy-mm-ddTHH:MM:SS.FFF'), ...
+                               'type', type, ...
+                               'data', data);
+                fid = fopen(fullfile('.agent', 'events.jsonl'), 'a');
+                if fid ~= -1
+                    fprintf(fid, '%s\n', jsonencode(event));
+                    fclose(fid);
+                end
+            catch
+                % Fail silently on logging errors
+            end
         end
 
         function run(obj)
@@ -65,6 +84,9 @@ classdef AgentLoop < handle
                         continue;
                     end
 
+                    % Log user input
+                    obj.logEvent('user_input', struct('content', lastMsg.content));
+
                     % Check for special commands
                     if startsWith(lastMsg.content, '/')
                         obj.handleCommand(lastMsg.content);
@@ -87,9 +109,14 @@ classdef AgentLoop < handle
             
             interacting = true;
             while interacting
+                % Small delay to respect rate limits
+                pause(1.0);
+
                 % Prepend T1 (System config) and T2 (Session state) to the payload
                 t3Messages = obj.Context.T3_Conversation;
                 fullMessages = [obj.Context.T1_Config, t3Messages];
+                
+                fprintf('[DEBUG] Interaction turn. Messages in context: %d\n', length(fullMessages));
 
                 % Execute the LLM Call with tool schemas
                 toolSchemas = obj.Tools.getToolSchemas();
@@ -99,12 +126,20 @@ classdef AgentLoop < handle
                 if isfield(response, 'choices') && ~isempty(response.choices)
                     replyMsg = response.choices(1).message;
                     
+                    % Ensure tool_calls is a cell array (for jsonencode to produce a list)
+                    if isfield(replyMsg, 'tool_calls') && isstruct(replyMsg.tool_calls)
+                        replyMsg.tool_calls = {replyMsg.tool_calls};
+                    end
+                    
                     % Ensure 'content' exists even if null (for ContextManager compatibility)
                     if ~isfield(replyMsg, 'content') || isempty(replyMsg.content)
                         replyMsg.content = ''; 
                     end
                     
                     obj.Context.push(replyMsg);
+
+                    % Log the assistant's reply
+                    obj.logEvent('assistant_reply', struct('content', replyMsg.content));
 
                     % Notify listener that text was received
                     if ~isempty(replyMsg.content)
@@ -113,13 +148,24 @@ classdef AgentLoop < handle
 
                     % Check for tool calls (OpenAI format)
                     if isfield(replyMsg, 'tool_calls') && ~isempty(replyMsg.tool_calls)
-                        for tIdx = 1:length(replyMsg.tool_calls)
-                            tCall = replyMsg.tool_calls(tIdx);
+                        % Log the tool calls
+                        obj.logEvent('tool_calls', struct('calls', replyMsg.tool_calls));
+
+                        toolCalls = replyMsg.tool_calls;
+                        if isstruct(toolCalls)
+                            toolCalls = {toolCalls};
+                        end
+
+                        for tIdx = 1:length(toolCalls)
+                            tCall = toolCalls{tIdx}; % Use curly braces for cell indexing
                             toolName = tCall.function.name;
                             toolArgsJSON = tCall.function.arguments;
 
                             % Dispatch tool execution
                             resultStr = obj.Tools.dispatch(toolName, toolArgsJSON);
+                            
+                            % Log the tool result
+                            obj.logEvent('tool_result', struct('name', toolName, 'result', resultStr));
 
                             % Push tool result back to context
                             toolResultMsg = struct('role', 'tool', ...
@@ -160,6 +206,10 @@ classdef AgentLoop < handle
                 case '/compact'
                     obj.Context.maybeCompact(); % In a real app, maybe force it here
                     notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Manual compaction triggered.')));
+
+                case '/save'
+                    obj.Context.saveSession();
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Session state saved to .agent/session.json.')));
 
                 case '/history'
                     histText = 'Conversation History:\n';
