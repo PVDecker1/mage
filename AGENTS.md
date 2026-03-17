@@ -1,4 +1,4 @@
-# AGENT.md
+# AGENTS.md
 
 This file is loaded by MATL-AGENT at the start of every session as persistent project context (T1 tier). It survives compaction. Keep it accurate and concise — every line costs tokens every turn.
 
