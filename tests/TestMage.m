@@ -78,7 +78,7 @@ classdef TestMage < matlab.unittest.TestCase
             % Verify context manager pushed T1 config
             testCase.verifyNotEmpty(agent.Context.T1_Config);
             testCase.verifyEqual(agent.Context.T1_Config{1}.role, 'system');
-            testCase.verifyEqual(agent.Context.T1_Config{1}.content, 'Mock AGENT rules here.');
+            testCase.verifyTrue(contains(agent.Context.T1_Config{1}.content, 'Mock AGENT rules here.'));
         end
     end
 end

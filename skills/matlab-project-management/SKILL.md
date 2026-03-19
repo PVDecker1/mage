@@ -1,6 +1,6 @@
 ---
 name: matlab-project-management
-description: Create, configure, and manage MATLAB projects programmatically. Use when creating or opening projects, adding files and folders, managing the project path, working with references, labels, shortcuts, startup/shutdown tasks, querying source control status, or analyzing file dependencies.
+description: CRITICAL: Essential rules for programmatic project manipulation. Load this BEFORE creating/opening projects or adding files to avoid corrupting project metadata.
 license: MIT (see LICENSE)
 metadata:
   author: Austin Decker

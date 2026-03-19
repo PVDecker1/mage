@@ -1,6 +1,6 @@
 ---
 name: simulink
-description: Programmatically build, configure, and simulate Simulink models. Use for adding/connecting blocks, setting parameters, and managing simulations.
+description: CRITICAL: Contains must-follow rules for programmatic Simulink. Load this BEFORE adding/connecting blocks or setting parameters to avoid common API failures.
 license: MIT (see LICENSE)
 metadata:
   author: Austin Decker

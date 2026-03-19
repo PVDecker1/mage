@@ -19,7 +19,8 @@ function result = LoadSkill(agent, args)
         loadedContent = registry.loadSkill(skillName);
 
         if isempty(loadedContent)
-            result = sprintf('Skill `%s` not found or empty.', skillName);
+            available = strjoin(registry.listSkills(), ', ');
+            result = sprintf('Skill `%s` not found or empty. Available skills: %s', skillName, available);
         else
             result = sprintf('Successfully loaded skill `%s`:\n%s', skillName, loadedContent);
         end

@@ -67,6 +67,11 @@ classdef AgentLoop < handle
                     evtData = struct('prompt', [obj.Mode, '> '], 'input', '');
                     notify(obj, 'UserInputRequired', AgentEventData(evtData));
 
+                    lastMsg = obj.Context.T3_Conversation{end};
+                    if ~strcmp(lastMsg.role, 'user') || isempty(strtrim(lastMsg.content))
+                        continue;  % Don't process empty or non-user messages
+                    end
+
                     % If the user typed /exit or adapter stopped the loop, break early
                     if ~obj.IsRunning
                         break;
@@ -110,12 +115,8 @@ classdef AgentLoop < handle
             
             interacting = true;
             while interacting
-                % Small delay to respect rate limits
-                pause(1.0);
-
                 % Prepend T1 (System config) and T2 (Session state) to the payload
-                t3Messages = obj.Context.T3_Conversation;
-                fullMessages = [obj.Context.T1_Config, t3Messages];
+                fullMessages = obj.Context.getPayload();
                 
                 fprintf('[DEBUG] Interaction turn. Messages in context: %d\n', length(fullMessages));
 
@@ -129,7 +130,7 @@ classdef AgentLoop < handle
                     
                     % Ensure tool_calls is a cell array (for jsonencode to produce a list)
                     if isfield(replyMsg, 'tool_calls') && isstruct(replyMsg.tool_calls)
-                        replyMsg.tool_calls = {replyMsg.tool_calls};
+                        replyMsg.tool_calls = num2cell(replyMsg.tool_calls);
                     end
                     
                     % Ensure 'content' exists even if null (for ContextManager compatibility)

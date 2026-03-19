@@ -102,7 +102,6 @@ classdef ContextManager < handle
 
             currentEstimate = obj.estimateTokens();
             thresholdTokens = obj.TokenBudget * obj.CompactionThresh;
-
             if currentEstimate >= thresholdTokens
                 % Perform pseudo-compaction by summarizing T3 into T2
                 summary = sprintf('Compacted %d turns on %s.', length(obj.T3_Conversation), datestr(now));
@@ -179,6 +178,23 @@ classdef ContextManager < handle
             % Simple approximation: 4 chars per token
             tokens = round(totalChars / 4);
         end
+        function payload = getPayload(obj)
+            % getPayload Constructs the full message list for the LLM.
+            %   Combines T1 (System/Skills), T2 (Handoff Ledger), and T3 (Conversation).
+            
+            payload = obj.T1_Config;
+            
+            % Add T2 Handoff if not empty
+            if ~isempty(obj.T2_Session.ledger)
+                handoffMsg = struct('role', 'system', ...
+                    'content', sprintf('## Session Context (Tier 2)\n%s', obj.T2_Session.ledger));
+                payload = [payload, {handoffMsg}];
+            end
+            
+            % Add T3 Conversation
+            payload = [payload, obj.T3_Conversation];
+        end
+
         function msg = pop(obj)
             % pop Removes and returns the last message from the T3 conversation history.
             if isempty(obj.T3_Conversation)
