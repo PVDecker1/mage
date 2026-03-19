@@ -15,10 +15,10 @@ This file is loaded by Mage at the start of every session as persistent project 
 
 ## Repository
 
-**Platform:** GitLab  
+**Platform:** github
 **Default branch:** `main`  
 **Branch convention:** `feature/short-description`, `fix/short-description`, `chore/short-description`  
-**Merge requests:** Squash commits; MR title should complete the sentence "This MR..."
+**Merge requests:** Squash commits; PR title should complete the sentence "This PR..."
 
 ---
 
