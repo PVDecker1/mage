@@ -5,7 +5,7 @@ classdef SkillRegistry < handle
     properties
         Config       % Reference to project config
         SkillPath    % Root path for skills (e.g. .agent/skills/)
-        GlobalPath   % Global skills directory (e.g. relative to matl_agent.m)
+        GlobalPath   % Global skills directory (e.g. relative to mage.m)
         Available    % List/map of discovered skills
     end
 
@@ -34,6 +34,13 @@ classdef SkillRegistry < handle
 
         function discoverSkills(obj, rootPath)
             % discoverSkills Scans a directory for subdirectories containing SKILL.md
+
+            if nargin < 2
+                % If no path provided, rediscover both global and local
+                obj.discoverSkills(obj.GlobalPath);
+                obj.discoverSkills(obj.SkillPath);
+                return;
+            end
 
             if ~isfolder(rootPath)
                 return;
@@ -65,7 +72,7 @@ classdef SkillRegistry < handle
                     skillFile = obj.Available(skillName);
                     content = fileread(skillFile);
                 catch ME
-                    error('matl_agent:SkillRegistry:loadFailed', 'Failed to read skill %s: %s', skillName, ME.message);
+                    error('mage:SkillRegistry:loadFailed', 'Failed to read skill %s: %s', skillName, ME.message);
                 end
             end
         end
@@ -73,6 +80,48 @@ classdef SkillRegistry < handle
         function list = listSkills(obj)
             % listSkills Returns a cell array of discovered skill names.
             list = obj.Available.keys();
+        end
+
+        function descMap = getSkillDescriptions(obj)
+            % getSkillDescriptions Returns a containers.Map of skill names to descriptions.
+            %   Attempts to extract the 'description' from YAML frontmatter or first lines.
+            
+            names = obj.listSkills();
+            descMap = containers.Map('KeyType', 'char', 'ValueType', 'char');
+            
+            for i = 1:length(names)
+                name = names{i};
+                path = obj.Available(name);
+                desc = 'No description available.';
+                
+                try
+                    fid = fopen(path, 'r');
+                    if fid ~= -1
+                        % Read first 20 lines to find description
+                        for lineIdx = 1:20
+                            line = fgetl(fid);
+                            if ~ischar(line), break; end
+                            
+                            % Look for "description: ..."
+                            match = regexp(line, 'description:\s*(.*)', 'tokens', 'once');
+                            if ~isempty(match)
+                                desc = strtrim(match{1});
+                                % Remove surrounding quotes if present
+                                if startsWith(desc, '"') && endsWith(desc, '"')
+                                    desc = desc(2:end-1);
+                                elseif startsWith(desc, "'") && endsWith(desc, "'")
+                                    desc = desc(2:end-1);
+                                end
+                                break;
+                            end
+                        end
+                        fclose(fid);
+                    end
+                catch
+                    % Fallback to default
+                end
+                descMap(name) = desc;
+            end
         end
     end
 end

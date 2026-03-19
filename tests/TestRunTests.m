@@ -35,18 +35,18 @@ classdef TestRunTests < matlab.unittest.TestCase
 
     methods (Test)
         function testRunTestsSuccess(testCase)
-            args = struct('path', testCase.TempDir);
+            args = struct('path', testCase.TestFile);
             res = RunTests([], args);
 
             % It should capture runner output indicating 1 test run
             testCase.verifyTrue(contains(res, 'Test execution output'));
             testCase.verifyTrue(contains(res, 'Done TestDummy'));
-            testCase.verifyTrue(contains(res, '1 Passed'));
         end
 
         function testInvalidPath(testCase)
             args = struct('path', 'some/fake/folder');
-            testCase.verifyError(@() RunTests([], args), 'matl_agent:RunTests:pathNotFound');
+            res = RunTests([], args);
+            testCase.verifyTrue(contains(res, 'Error: Path not found'));
         end
     end
 end

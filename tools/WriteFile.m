@@ -3,7 +3,7 @@ function result = WriteFile(~, args)
     %   args must contain 'filepath' and 'content'.
 
     if ~isfield(args, 'filepath') || ~isfield(args, 'content')
-        error('matl_agent:WriteFile:missingArgs', 'Missing filepath or content arguments');
+        error('mage:WriteFile:missingArgs', 'Missing filepath or content arguments');
     end
 
     filepath = args.filepath;
@@ -15,7 +15,7 @@ function result = WriteFile(~, args)
 
         fid = fopen(filepath, 'w');
         if fid == -1
-            error('matl_agent:WriteFile:openFailed', 'Could not open file for writing.');
+            error('mage:WriteFile:openFailed', 'Could not open file for writing.');
         end
         fprintf(fid, '%s', content);
         fclose(fid);

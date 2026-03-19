@@ -11,7 +11,7 @@ classdef LLMClient < handle
     methods
         function obj = LLMClient(cfg)
             if nargin < 1 || isempty(cfg)
-                error('matl_agent:LLMClient:missingConfig', 'LLMClient requires a configuration struct.');
+                error('mage:LLMClient:missingConfig', 'LLMClient requires a configuration struct.');
             end
             obj.Config = cfg;
             
@@ -19,25 +19,25 @@ classdef LLMClient < handle
             if isfield(cfg, 'endpoint') && ~isempty(cfg.endpoint)
                 obj.BaseURL = cfg.endpoint;
             else
-                error('matl_agent:LLMClient:missingEndpoint', 'Missing "endpoint" in config.json');
+                error('mage:LLMClient:missingEndpoint', 'Missing "endpoint" in config.json');
             end
 
             % Resolve Model - Required, trust user exactly
             if isfield(cfg, 'model') && ~isempty(cfg.model)
                 obj.Model = cfg.model;
             else
-                error('matl_agent:LLMClient:missingModel', 'Missing "model" in config.json');
+                error('mage:LLMClient:missingModel', 'Missing "model" in config.json');
             end
 
             % Resolve API Key
             if isfield(cfg, 'secrets') && isfield(cfg.secrets, 'api_key') && ~isempty(cfg.secrets.api_key)
                 obj.ApiKey = cfg.secrets.api_key;
             else
-                obj.ApiKey = getenv('MATL_AGENT_API_KEY');
+                obj.ApiKey = getenv('MAGE_API_KEY');
             end
             
             if isempty(obj.ApiKey) && ~contains(obj.BaseURL, 'localhost')
-                error('matl_agent:LLMClient:missingKey', 'API key not found in config or MATL_AGENT_API_KEY env var.');
+                error('mage:LLMClient:missingKey', 'API key not found in config or MAGE_API_KEY env var.');
             end
         end
 
@@ -97,14 +97,73 @@ classdef LLMClient < handle
                                 serverError = char(resp.Body.Data);
                             end
                         end
-                        error('matl_agent:LLMClient:httpError', ...
+                        error('mage:LLMClient:httpError', ...
                             'HTTP %d: %s\nModel: %s\nServer Response: %s', ...
                             double(resp.StatusCode), resp.StatusLine.ReasonPhrase, obj.Model, serverError);
                     end
                 catch ME
                     if contains(ME.identifier, 'httpError'), rethrow(ME); end
-                    error('matl_agent:LLMClient:requestFailed', 'Request failed: %s', ME.message);
+                    error('mage:LLMClient:requestFailed', 'Request failed: %s', ME.message);
                 end
+            end
+        end
+        function models = listModels(obj)
+            % listModels Fetches the list of available models from the endpoint.
+            import matlab.net.http.*
+            import matlab.net.http.field.*
+
+            % Format URL for models endpoint
+            url = obj.BaseURL;
+            if contains(url, 'chat/completions')
+                url = strrep(url, 'chat/completions', 'models');
+            else
+                if ~endsWith(url, '/'), url = [url '/']; end
+                url = [url 'models'];
+            end
+
+            % Add key to URL for Gemini shim compatibility
+            if ~isempty(obj.ApiKey) && contains(url, 'generativelanguage.googleapis.com')
+                if ~contains(url, '?'), url = [url '?key=' obj.ApiKey];
+                else, url = [url '&key=' obj.ApiKey]; end
+            end
+
+            % Setup Request
+            header = [HeaderField('Content-Type', 'application/json') ...
+                      HeaderField('Authorization', ['Bearer ' obj.ApiKey])];
+            request = RequestMessage('GET', header);
+
+            try
+                options = HTTPOptions('ConnectTimeout', 30);
+                resp = send(request, url, options);
+                
+                if resp.StatusCode == StatusCode.OK
+                    data = resp.Body.Data;
+                    if isfield(data, 'data')
+                        % OpenAI format: could be cell array or struct array
+                        if iscell(data.data)
+                            models = cellfun(@(x) x.id, data.data, 'UniformOutput', false);
+                        elseif isstruct(data.data)
+                            models = {data.data.id};
+                        else
+                            models = {};
+                        end
+                    elseif isfield(data, 'models')
+                        % Gemini direct format
+                        if iscell(data.models)
+                            models = cellfun(@(x) x.name, data.models, 'UniformOutput', false);
+                        elseif isstruct(data.models)
+                            models = {data.models.name};
+                        else
+                            models = {};
+                        end
+                    else
+                        models = {};
+                    end
+                else
+                    error('mage:LLMClient:httpError', 'HTTP %d: %s', double(resp.StatusCode), resp.StatusLine.ReasonPhrase);
+                end
+            catch ME
+                error('mage:LLMClient:requestFailed', 'Failed to list models: %s', ME.message);
             end
         end
     end

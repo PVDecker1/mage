@@ -28,7 +28,7 @@ classdef TestMatlabEval < matlab.unittest.TestCase
 
         function testEvalMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() MatlabEval([], args), 'matl_agent:MatlabEval:missingArgs');
+            testCase.verifyError(@() MatlabEval([], args), 'mage:MatlabEval:missingArgs');
         end
     end
 end

@@ -3,7 +3,7 @@ function result = MatlabEval(~, args)
     %   args must contain 'code'.
 
     if ~isfield(args, 'code')
-        error('matl_agent:MatlabEval:missingArgs', 'Missing code argument');
+        error('mage:MatlabEval:missingArgs', 'Missing code argument');
     end
 
     code = args.code;

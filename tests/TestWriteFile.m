@@ -32,7 +32,7 @@ classdef TestWriteFile < matlab.unittest.TestCase
 
         function testWriteFileMissingArgs(testCase)
             args = struct('filepath', testCase.TempFile); % Missing content
-            testCase.verifyError(@() WriteFile([], args), 'matl_agent:WriteFile:missingArgs');
+            testCase.verifyError(@() WriteFile([], args), 'mage:WriteFile:missingArgs');
         end
     end
 end

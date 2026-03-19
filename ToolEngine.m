@@ -1,5 +1,5 @@
 classdef ToolEngine < handle
-    % ToolEngine Central dispatch system for MATL-AGENT tools.
+    % ToolEngine Central dispatch system for Mage tools.
     %   Loads, registers, and executes tool handlers based on tool_call JSON.
 
     properties
@@ -14,7 +14,7 @@ classdef ToolEngine < handle
             %   Initializes the engine with an AgentLoop reference.
 
             if nargin < 1
-                error('matl_agent:ToolEngine:missingAgent', 'ToolEngine requires an AgentLoop instance.');
+                error('mage:ToolEngine:missingAgent', 'ToolEngine requires an AgentLoop instance.');
             end
 
             obj.Agent = agentLoop;
@@ -83,8 +83,8 @@ classdef ToolEngine < handle
             s = [s, f('matlab_eval', 'Evaluate arbitrary MATLAB code and return Command Window output.', ...
                 p(struct('code', struct('type', 'string', 'description', 'MATLAB code to execute')), {'code'}))];
 
-            s = [s, f('run_tests', 'Run the project test suite using matlab.unittest.', ...
-                p(struct('path', struct('type', 'string', 'description', 'Path to tests folder (defaults to tests/)')), {}))];
+            s = [s, f('run_tests', 'Run the project test suite or a specific test file. Always report the pass/fail results to the user.', ...
+                p(struct('path', struct('type', 'string', 'description', 'Path to tests folder or a specific .m test file (e.g., tests/TestEditFile.m)')), {}))];
 
             s = [s, f('run_script', 'Execute a MATLAB script file.', ...
                 p(struct('script_path', struct('type', 'string', 'description', 'Path to the .m script')), {'script_path'}))];
@@ -99,10 +99,10 @@ classdef ToolEngine < handle
             s = [s, f('web_fetch', 'Fetch the content of a URL (useful for docs or research).', ...
                 p(struct('url', struct('type', 'string', 'description', 'URL to fetch')), {'url'}))];
 
-            s = [s, f('ask_human', 'Ask the user a question or for clarification.', ...
-                p(struct('question', struct('type', 'string', 'description', 'The question to ask the user')), {'question'}))];
+            s = [s, f('ask_human', 'Ask the user for project-specific information or clarification that cannot be found in the codebase. Do not use for general knowledge questions.', ...
+                p(struct('question', struct('type', 'string', 'description', 'The specific question for the user')), {'question'}))];
 
-            s = [s, f('load_skill', 'Load a specialized skill pack from .agent/skills/.', ...
+            s = [s, f('load_skill', 'Load a specialized skill pack (SKILL.md) to gain deeper knowledge on a specific topic.', ...
                 p(struct('skill_name', struct('type', 'string', 'description', 'Name of the skill to load')), {'skill_name'}))];
 
             s = [s, f('search_docs', 'Search for MATLAB or project documentation.', ...
@@ -121,7 +121,7 @@ classdef ToolEngine < handle
             %   Returns a string result representing the tool's output.
 
             if ~isKey(obj.Handlers, toolName)
-                error('matl_agent:ToolEngine:unknownTool', 'Unknown tool: %s', toolName);
+                error('mage:ToolEngine:unknownTool', 'Unknown tool: %s', toolName);
             end
 
             % Parse arguments if provided
@@ -129,7 +129,7 @@ classdef ToolEngine < handle
                 try
                     args = jsondecode(argsJSON);
                 catch ME
-                    error('matl_agent:ToolEngine:invalidArgs', 'Invalid JSON arguments for tool %s: %s', toolName, ME.message);
+                    error('mage:ToolEngine:invalidArgs', 'Invalid JSON arguments for tool %s: %s', toolName, ME.message);
                 end
             else
                 args = struct();

@@ -59,7 +59,7 @@ classdef TestLoadSkill < matlab.unittest.TestCase
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() LoadSkill(testCase.AgentLoop, args), 'matl_agent:LoadSkill:missingArgs');
+            testCase.verifyError(@() LoadSkill(testCase.AgentLoop, args), 'mage:LoadSkill:missingArgs');
         end
 
         function testMissingRegistry(testCase)

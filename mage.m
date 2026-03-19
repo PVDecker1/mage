@@ -1,5 +1,5 @@
-function agent = matl_agent()
-    % matl_agent Entry point for MATL-AGENT.
+function agent = mage()
+    % mage Entry point for Mage.
     %   Initializes AgentLoop, adapters, reads config, and starts the REPL.
 
     % Add necessary subdirectories to the path dynamically
@@ -68,8 +68,8 @@ function agent = matl_agent()
         end
     end
 
-    % Read AGENT.md (Project Context T1)
-    agentMdPath = fullfile(pwd, 'AGENT.md');
+    % Read AGENTS.md (Project Context T1)
+    agentMdPath = fullfile(pwd, 'AGENTS.md');
     agentMdContent = '';
     if isfile(agentMdPath)
         agentMdContent = fileread(agentMdPath);
@@ -78,13 +78,42 @@ function agent = matl_agent()
     % Create Core Loop
     agent = AgentLoop(cfg);
 
-    % Initialize and Inject Dependencies
-    agent.Context = ContextManager(cfg, agent);
-    agent.Context.T1_Config = {struct('role', 'system', 'content', agentMdContent)};
+    % Construct Environment Context
+    envInfo = sprintf('## Environment\n- Operating System: %s\n- MATLAB Version: %s\n- Root Directory: %s\n', ...
+        computer, version, pwd);
+    
+    sysPrompt = ['You are Mage, an autonomous software engineer for MATLAB. ', ...
+                 'Use your tools to explore the codebase and perform engineering tasks. ', ...
+                 'CRITICAL: Do not attempt to call agent methods directly from within tools. ', ...
+                 'CRITICAL: Never try to run mage.m or instantiate AgentLoop from within the agent loop; this causes infinite recursion. ', ...
+                 'For general knowledge questions, answer directly from your internal knowledge base without using tools.'];
 
     agent.Client = LLMClient(cfg);
     agent.Tools = ToolEngine(agent);
     agent.Skills = SkillRegistry(cfg);
+
+    % Build Skill Context
+    skillDescs = agent.Skills.getSkillDescriptions();
+    skillNames = skillDescs.keys();
+    skillPrompt = sprintf('## Available Skills\n');
+    if isempty(skillNames)
+        skillPrompt = sprintf('%sNo specialized skills available.\n', skillPrompt);
+    else
+        for i = 1:length(skillNames)
+            name = skillNames{i};
+            skillPrompt = sprintf('%s- %s: %s\n', skillPrompt, name, skillDescs(name));
+        end
+        skillPrompt = sprintf('%s\nUse the `load_skill` tool to load the full content of a skill if it is relevant to the user request.\n', skillPrompt);
+    end
+
+    % Initialize and Inject Dependencies
+    agent.Context = ContextManager(cfg, agent);
+    agent.Context.T1_Config = {
+        struct('role', 'system', 'content', agentMdContent), ...
+        struct('role', 'system', 'content', sysPrompt), ...
+        struct('role', 'system', 'content', skillPrompt), ...
+        struct('role', 'system', 'content', envInfo)
+    };
 
     % Diagnostic Output
     fprintf('--- Configuration Diagnostic ---\n');
@@ -99,7 +128,7 @@ function agent = matl_agent()
     % Attach I/O Adapter (Command Window REPL)
     CmdWindowAdapter(agent); % Handles setup on construction
 
-    fprintf('MATL-AGENT initialized successfully in directory: %s\n', pwd);
+    fprintf('Mage initialized successfully in directory: %s\n', pwd);
     fprintf('Type /exit to quit.\n');
 
     % Optional: return handle without running if nargout > 0

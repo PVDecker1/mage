@@ -1,0 +1,11 @@
+{
+  "endpoint": "<your_api_endpoint>",
+  "model": "<your_model>",
+  "compaction_model": "<your_model>",
+  "max_tokens": 8192,
+  "context_budget": 100000,
+  "compact_threshold": 0.7,
+  "secrets": {
+    "api_key": "YOUR_API_KEY_HERE",
+  }
+}

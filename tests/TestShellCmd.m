@@ -20,7 +20,7 @@ classdef TestShellCmd < matlab.unittest.TestCase
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() ShellCmd([], args), 'matl_agent:ShellCmd:missingArgs');
+            testCase.verifyError(@() ShellCmd([], args), 'mage:ShellCmd:missingArgs');
         end
     end
 end

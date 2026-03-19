@@ -3,19 +3,20 @@ function result = RunScript(~, args)
     %   args must contain 'script_path'.
 
     if ~isfield(args, 'script_path')
-        error('matl_agent:RunScript:missingArgs', 'Missing script_path argument');
+        error('mage:RunScript:missingArgs', 'Missing script_path argument');
     end
 
     scriptPath = args.script_path;
 
     if ~isfile(scriptPath)
-        error('matl_agent:RunScript:fileNotFound', 'Script file not found: %s', scriptPath);
+        result = sprintf('Error: Script file not found: %s', scriptPath);
+        return;
     end
 
     try
         [~, name, ext] = fileparts(scriptPath);
         if ~strcmp(ext, '.m')
-            error('matl_agent:RunScript:notMFile', 'File must be a .m script');
+            error('mage:RunScript:notMFile', 'File must be a .m script');
         end
 
         % We use evalc to capture output, and run it.

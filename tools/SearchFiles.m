@@ -1,32 +1,54 @@
-function result = SearchFiles(~, args)
-    % SearchFiles Searches for a pattern across files in a directory.
+ function result = SearchFiles(~, args)
+    % SearchFiles Search for a regex pattern across files.
     %   args must contain 'pattern', and optionally 'dir'.
 
     if ~isfield(args, 'pattern')
-        error('matl_agent:SearchFiles:missingArgs', 'Missing pattern argument');
+        error('mage:SearchFiles:missingArgs', 'Missing pattern argument');
     end
 
     pattern = args.pattern;
     if isfield(args, 'dir')
         searchDir = args.dir;
     else
-        searchDir = pwd;
+        searchDir = '.';
+    end
+
+    if ~isfolder(searchDir)
+        result = sprintf('Error: Directory not found: %s', searchDir);
+        return;
     end
 
     try
-        % Basic implementation using recursive dir and regexpi
-        allFiles = getAllFiles(searchDir);
+        % Get all files recursively
+        allFiles = dir(fullfile(searchDir, '**', '*'));
+        allFiles = allFiles(~[allFiles.isdir]);
+        
         foundFiles = {};
-
         for i = 1:length(allFiles)
-            file = allFiles{i};
-            % Only search .m or text files for simplicity, skip mat/mex
+            file = fullfile(allFiles(i).folder, allFiles(i).name);
             [~, ~, ext] = fileparts(file);
-            if ismember(ext, {'.m', '.txt', '.md', '.json'})
+            
+            % Only search text-like files
+            if ismember(ext, {'.m', '.txt', '.md', '.json', '.xml', '.jsonl'})
                 try
-                    content = fileread(file);
-                    if ~isempty(regexpi(content, pattern, 'once'))
-                        foundFiles{end+1} = file; %#ok<AGROW>
+                    fid = fopen(file, 'r');
+                    if fid == -1, continue; end
+
+                    lineNum = 0;
+                    fileMatches = {};
+                    while ~feof(fid)
+                        line = fgetl(fid);
+                        lineNum = lineNum + 1;
+                        if ~ischar(line), continue; end
+
+                        if ~isempty(regexpi(line, pattern, 'once'))
+                            fileMatches{end+1} = sprintf('%d: %s', lineNum, line); %#ok<AGROW>
+                        end
+                    end
+                    fclose(fid);
+
+                    if ~isempty(fileMatches)
+                        foundFiles{end+1} = sprintf('--- %s ---\n%s', file, strjoin(fileMatches, newline)); %#ok<AGROW>
                     end
                 catch
                     % Ignore read errors on individual files
@@ -37,27 +59,9 @@ function result = SearchFiles(~, args)
         if isempty(foundFiles)
             result = sprintf('No files found matching pattern: %s', pattern);
         else
-            result = sprintf('Found pattern "%s" in:\n%s', pattern, strjoin(foundFiles, newline));
+            result = sprintf('Found pattern "%s" in:\n\n%s', pattern, strjoin(foundFiles, [newline, newline]));
         end
     catch ME
         result = sprintf('Failed to search files: %s', ME.message);
-    end
-end
-
-function fileList = getAllFiles(dirName)
-    dirData = dir(dirName);
-    dirIndex = [dirData.isdir];
-    fileList = {dirData(~dirIndex).name}';
-
-    if ~isempty(fileList)
-        fileList = fullfile(dirName, fileList);
-    end
-
-    subDirs = {dirData(dirIndex).name};
-    validIndex = ~ismember(subDirs, {'.', '..', '.git', '.agent', 'codegen', 'slprj'});
-
-    for i = find(validIndex)
-        nextDir = fullfile(dirName, subDirs{i});
-        fileList = [fileList; getAllFiles(nextDir)]; %#ok<AGROW>
     end
 end

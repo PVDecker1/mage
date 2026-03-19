@@ -37,7 +37,8 @@ classdef TestRunScript < matlab.unittest.TestCase
 
         function testRunScriptFileNotFound(testCase)
             args = struct('script_path', fullfile(testCase.TempDir, 'fake.m'));
-            testCase.verifyError(@() RunScript([], args), 'matl_agent:RunScript:fileNotFound');
+            res = RunScript([], args);
+            testCase.verifyTrue(contains(res, 'Script file not found'));
         end
 
         function testRunScriptNotMFile(testCase)
@@ -47,12 +48,13 @@ classdef TestRunScript < matlab.unittest.TestCase
             fclose(fid);
 
             args = struct('script_path', txtFile);
-            testCase.verifyError(@() RunScript([], args), 'matl_agent:RunScript:notMFile');
+            res = RunScript([], args);
+            testCase.verifyTrue(contains(res, 'File must be a .m script'));
         end
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() RunScript([], args), 'matl_agent:RunScript:missingArgs');
+            testCase.verifyError(@() RunScript([], args), 'mage:RunScript:missingArgs');
         end
     end
 end

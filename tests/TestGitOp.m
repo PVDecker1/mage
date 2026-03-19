@@ -20,15 +20,15 @@ classdef TestGitOp < matlab.unittest.TestCase
         function testSecurityCheck(testCase)
             % Should block command chaining
             args = struct('command', 'status; rm -rf /');
-            testCase.verifyError(@() GitOp([], args), 'matl_agent:GitOp:invalidChars');
+            testCase.verifyError(@() GitOp([], args), 'mage:GitOp:invalidChars');
 
             args = struct('command', 'status & echo hack');
-            testCase.verifyError(@() GitOp([], args), 'matl_agent:GitOp:invalidChars');
+            testCase.verifyError(@() GitOp([], args), 'mage:GitOp:invalidChars');
         end
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() GitOp([], args), 'matl_agent:GitOp:missingArgs');
+            testCase.verifyError(@() GitOp([], args), 'mage:GitOp:missingArgs');
         end
     end
 end

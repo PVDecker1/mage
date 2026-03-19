@@ -13,19 +13,22 @@ classdef TestAskHuman < matlab.unittest.TestCase
 
     methods (Test)
         function testAskHumanFiresEvent(testCase)
-            fired = false;
-            addlistener(testCase.AgentLoop, 'UserInputRequired', @(~,~) assignin('caller', 'fired', true));
+            dummyAnswer = '42';
+            addlistener(testCase.AgentLoop, 'UserInputRequired', @(~,evt) setResponse(evt, dummyAnswer));
 
-            args = struct('question', 'What is 2+2?');
+            args = struct('question', 'What is the meaning of life?');
             res = AskHuman(testCase.AgentLoop, args);
 
-            testCase.verifyTrue(fired);
-            testCase.verifyTrue(contains(res, 'User answered question'));
+            testCase.verifyEqual(res, dummyAnswer);
+            
+            function setResponse(evt, ans)
+                evt.Response = ans;
+            end
         end
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() AskHuman(testCase.AgentLoop, args), 'matl_agent:AskHuman:missingArgs');
+            testCase.verifyError(@() AskHuman(testCase.AgentLoop, args), 'mage:AskHuman:missingArgs');
         end
     end
 end

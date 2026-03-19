@@ -43,7 +43,7 @@ classdef TestEditFile < matlab.unittest.TestCase
 
         function testEditFileMissingArgs(testCase)
             args = struct('filepath', testCase.TempFile, 'old_str', 'World'); % Missing new_str
-            testCase.verifyError(@() EditFile([], args), 'matl_agent:EditFile:missingArgs');
+            testCase.verifyError(@() EditFile([], args), 'mage:EditFile:missingArgs');
         end
     end
 end

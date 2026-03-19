@@ -21,7 +21,7 @@ classdef TestWebFetch < matlab.unittest.TestCase
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() WebFetch([], args), 'matl_agent:WebFetch:missingArgs');
+            testCase.verifyError(@() WebFetch([], args), 'mage:WebFetch:missingArgs');
         end
     end
 end

@@ -3,7 +3,7 @@ function result = EditFile(~, args)
     %   args must contain 'filepath', 'old_str', and 'new_str'.
 
     if ~isfield(args, 'filepath') || ~isfield(args, 'old_str') || ~isfield(args, 'new_str')
-        error('matl_agent:EditFile:missingArgs', 'Missing filepath, old_str, or new_str arguments');
+        error('mage:EditFile:missingArgs', 'Missing filepath, old_str, or new_str arguments');
     end
 
     filepath = args.filepath;
@@ -17,7 +17,7 @@ function result = EditFile(~, args)
             content = strrep(content, args.old_str, args.new_str);
             fid = fopen(filepath, 'w');
             if fid == -1
-                error('matl_agent:EditFile:openFailed', 'Could not open file for writing.');
+                error('mage:EditFile:openFailed', 'Could not open file for writing.');
             end
             fprintf(fid, '%s', content);
             fclose(fid);

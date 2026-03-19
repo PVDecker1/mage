@@ -3,7 +3,7 @@ function result = LoadSkill(agent, args)
     %   args must contain 'skill_name'.
 
     if ~isfield(args, 'skill_name')
-        error('matl_agent:LoadSkill:missingArgs', 'Missing skill_name argument');
+        error('mage:LoadSkill:missingArgs', 'Missing skill_name argument');
     end
 
     skillName = args.skill_name;

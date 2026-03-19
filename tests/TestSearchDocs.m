@@ -21,7 +21,7 @@ classdef TestSearchDocs < matlab.unittest.TestCase
 
         function testMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() SearchDocs([], args), 'matl_agent:SearchDocs:missingArgs');
+            testCase.verifyError(@() SearchDocs([], args), 'mage:SearchDocs:missingArgs');
         end
     end
 end

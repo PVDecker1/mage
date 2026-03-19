@@ -3,7 +3,7 @@ function result = ShellCmd(~, args)
     %   args must contain 'command'.
 
     if ~isfield(args, 'command')
-        error('matl_agent:ShellCmd:missingArgs', 'Missing command argument');
+        error('mage:ShellCmd:missingArgs', 'Missing command argument');
     end
 
     command = args.command;

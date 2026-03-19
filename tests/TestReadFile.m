@@ -32,12 +32,12 @@ classdef TestReadFile < matlab.unittest.TestCase
 
         function testReadFileMissingArgs(testCase)
             args = struct();
-            testCase.verifyError(@() ReadFile([], args), 'matl_agent:ReadFile:missingArgs');
+            testCase.verifyError(@() ReadFile([], args), 'mage:ReadFile:missingArgs');
         end
 
         function testReadFileFileNotFound(testCase)
             args = struct('filepath', 'nonexistent_file_xyz.m');
-            testCase.verifyError(@() ReadFile([], args), 'matl_agent:ReadFile:fileNotFound');
+            testCase.verifyError(@() ReadFile([], args), 'mage:ReadFile:fileNotFound');
         end
     end
 end

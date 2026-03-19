@@ -53,7 +53,7 @@ classdef TestSearchFiles < matlab.unittest.TestCase
 
         function testMissingArgs(testCase)
             args = struct('dir', testCase.TempDir); % missing pattern
-            testCase.verifyError(@() SearchFiles([], args), 'matl_agent:SearchFiles:missingArgs');
+            testCase.verifyError(@() SearchFiles([], args), 'mage:SearchFiles:missingArgs');
         end
     end
 end

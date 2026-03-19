@@ -1,5 +1,5 @@
 classdef AgentLoop < handle
-    % AgentLoop Core engine for MATL-AGENT.
+    % AgentLoop Core engine for Mage.
     %   Orchestrates the LLM chat loop, contexts, tools, and events.
     %   No I/O happens directly here; it fires events caught by adapters.
 
@@ -89,6 +89,7 @@ classdef AgentLoop < handle
 
                     % Check for special commands
                     if startsWith(lastMsg.content, '/')
+                        obj.Context.pop(); % Remove command from history
                         obj.handleCommand(lastMsg.content);
                         continue;
                     end
@@ -153,7 +154,7 @@ classdef AgentLoop < handle
 
                         toolCalls = replyMsg.tool_calls;
                         if isstruct(toolCalls)
-                            toolCalls = {toolCalls};
+                            toolCalls = num2cell(toolCalls);
                         end
 
                         for tIdx = 1:length(toolCalls)
@@ -185,22 +186,53 @@ classdef AgentLoop < handle
             end
         end
 
+        function modes = getAllowedModes(~)
+            % getAllowedModes Returns a cell array of supported agent modes.
+            modes = {'code', 'architect', 'ask', 'doc', 'test', 'report'};
+        end
+
         function handleCommand(obj, cmdLine)
             % handleCommand Processes local /commands.
             parts = strsplit(cmdLine);
             cmd = parts{1};
+            allowedModes = obj.getAllowedModes();
+            modesStr = strjoin(allowedModes, ', ');
 
             switch cmd
                 case {'/exit', '/quit'}
                     obj.IsRunning = false;
-                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Exiting MATL-AGENT...')));
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Exiting Mage...')));
 
                 case '/mode'
                     if length(parts) > 1
-                        obj.setMode(parts{2});
-                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Mode set to: %s', obj.Mode))));
+                        newMode = parts{2};
+                        if ismember(newMode, allowedModes)
+                            obj.setMode(newMode);
+                            notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Mode set to: %s', obj.Mode))));
+                        else
+                            notify(obj, 'ResponseReceived', AgentEventData(struct('text', ...
+                                sprintf('Invalid mode: %s. Allowed: %s', newMode, modesStr))));
+                        end
                     else
-                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Current mode: %s', obj.Mode))));
+                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', ...
+                            sprintf('Current mode: %s. Allowed: %s', obj.Mode, modesStr))));
+                    end
+
+                case '/model'
+                    if length(parts) > 1
+                        newModel = parts{2};
+                        obj.Client.Model = newModel;
+                        notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Model set to: %s', obj.Client.Model))));
+                    else
+                        try
+                            availableModels = obj.Client.listModels();
+                            modelsStr = strjoin(availableModels, newline);
+                            notify(obj, 'ResponseReceived', AgentEventData(struct('text', ...
+                                sprintf('Current model: %s\nAvailable models:\n%s', obj.Client.Model, modelsStr))));
+                        catch ME
+                            notify(obj, 'ResponseReceived', AgentEventData(struct('text', ...
+                                sprintf('Current model: %s\nFailed to list available models: %s', obj.Client.Model, ME.message))));
+                        end
                     end
 
                 case '/compact'
@@ -212,14 +244,28 @@ classdef AgentLoop < handle
                     notify(obj, 'ResponseReceived', AgentEventData(struct('text', 'Session state saved to .agent/session.json.')));
 
                 case '/history'
-                    histText = 'Conversation History:\n';
+                    histText = sprintf('Conversation History:\n');
                     for i = 1:length(obj.Context.T3_Conversation)
                         m = obj.Context.T3_Conversation{i};
-                        histText = [histText, sprintf('[%s]: %s\n', m.role, m.content(1:min(end, 50)))]; %#ok<AGROW>
+                        % Escape % in content for sprintf
+                        content = strrep(m.content, '%', '%%');
+                        histText = [histText, sprintf('[%s]: %s\n', m.role, content(1:min(end, 50)))]; %#ok<AGROW>
                     end
                     notify(obj, 'ResponseReceived', AgentEventData(struct('text', histText)));
 
+                case '/help'
+                    helpText = ['Available Commands:\n', ...
+                               '/exit, /quit   - Exit the agent\n', ...
+                               sprintf('/mode [mode]   - Set or get the current mode (Allowed: %s)\n', modesStr), ...
+                               '/model [model] - Set or get the LLM model (Lists available if no arg)\n', ...
+                               '/compact       - Trigger context compaction\n', ...
+                               '/save          - Save current session state\n', ...
+                               '/history       - Show conversation history\n', ...
+                               '/help          - Show this help message'];
+                    notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf(helpText))));
+
                 otherwise
+
                     notify(obj, 'ResponseReceived', AgentEventData(struct('text', sprintf('Unknown command: %s', cmd))));
             end
         end

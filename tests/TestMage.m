@@ -1,5 +1,5 @@
-classdef TestMatlAgent < matlab.unittest.TestCase
-    % TestMatlAgent Tests for the main matl_agent.m entry point.
+classdef TestMage < matlab.unittest.TestCase
+    % TestMage Tests for the main mage.m entry point.
 
     properties
         OriginalDir
@@ -12,7 +12,7 @@ classdef TestMatlAgent < matlab.unittest.TestCase
             testCase.TempDir = tempname;
             mkdir(testCase.TempDir);
 
-            % Navigate to the temp directory so `matl_agent()` logic
+            % Navigate to the temp directory so `mage()` logic
             % operates in an isolated environment (like .agent/ creation)
             cd(testCase.TempDir);
         end
@@ -31,10 +31,10 @@ classdef TestMatlAgent < matlab.unittest.TestCase
 
     methods (Test)
         function testAgentInitializationSuccess(testCase)
-            % Call matl_agent with output argument so it doesn't call run()
+            % Call mage with output argument so it doesn't call run()
             % and block the test execution
 
-            agent = matl_agent();
+            agent = mage();
 
             % Verify that all components have been instantiated
             testCase.verifyClass(agent, 'AgentLoop');
@@ -54,10 +54,10 @@ classdef TestMatlAgent < matlab.unittest.TestCase
             cfgPath = fullfile(agentFolder, 'config.json');
 
             fid = fopen(cfgPath, 'w');
-            fprintf(fid, '{"model": "test-model-xyz", "max_tokens": 1234}');
+            fprintf(fid, '{"model": "test-model-xyz", "max_tokens": 1234, "endpoint": "http://localhost"}');
             fclose(fid);
 
-            agent = matl_agent();
+            agent = mage();
 
             % Verify config was loaded
             testCase.verifyEqual(agent.Config.model, 'test-model-xyz');
@@ -66,13 +66,14 @@ classdef TestMatlAgent < matlab.unittest.TestCase
         end
 
         function testAgentReadsAgentMdIfPresent(testCase)
-            % Create mock AGENT.md
-            mdPath = fullfile(testCase.TempDir, 'AGENT.md');
-            fid = fopen(mdPath, 'w');
+            % AGENTS.md
+            mdFile = fullfile(testCase.TempDir, 'AGENTS.md');
+            fid = fopen(mdFile, 'w');
             fprintf(fid, 'Mock AGENT rules here.');
             fclose(fid);
 
-            agent = matl_agent();
+
+            agent = mage();
 
             % Verify context manager pushed T1 config
             testCase.verifyNotEmpty(agent.Context.T1_Config);

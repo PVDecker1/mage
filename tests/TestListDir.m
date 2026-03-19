@@ -49,7 +49,7 @@ classdef TestListDir < matlab.unittest.TestCase
 
         function testListDirInvalidDir(testCase)
             args = struct('path', 'some/fake/dir/xyz123');
-            testCase.verifyError(@() ListDir([], args), 'matl_agent:ListDir:notDir');
+            testCase.verifyError(@() ListDir([], args), 'mage:ListDir:notDir');
         end
     end
 end

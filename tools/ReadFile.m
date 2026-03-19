@@ -3,13 +3,13 @@ function result = ReadFile(~, args)
     %   args must contain 'filepath' (a string).
 
     if ~isfield(args, 'filepath')
-        error('matl_agent:ReadFile:missingArgs', 'Missing filepath argument');
+        error('mage:ReadFile:missingArgs', 'Missing filepath argument');
     end
 
     filepath = args.filepath;
 
     if ~isfile(filepath)
-        error('matl_agent:ReadFile:fileNotFound', 'File not found: %s', filepath);
+        error('mage:ReadFile:fileNotFound', 'File not found: %s', filepath);
     end
 
     try

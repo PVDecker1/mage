@@ -1,10 +1,11 @@
 classdef AgentEventData < event.EventData
-    % AgentEventData Custom event data class for MATL-AGENT events
+    % AgentEventData Custom event data class for Mage events
     %   Used to pass structured payloads (like text, tool call info, or errors)
     %   from the AgentLoop to subscribed UI adapters like CmdWindowAdapter.
 
     properties
-        Data % Struct containing the event payload (e.g., text, name, message)
+        Data     % Struct containing the event payload (e.g., text, name, message)
+        Response % Place for listeners to store a return value (e.g., user response)
     end
 
     methods

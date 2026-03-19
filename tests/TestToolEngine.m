@@ -22,7 +22,7 @@ classdef TestToolEngine < matlab.unittest.TestCase
         function testUnknownTool(testCase)
             engine = ToolEngine(testCase.AgentLoop);
 
-            testCase.verifyError(@() engine.dispatch('bad_tool', '{}'), 'matl_agent:ToolEngine:unknownTool');
+            testCase.verifyError(@() engine.dispatch('bad_tool', '{}'), 'mage:ToolEngine:unknownTool');
         end
 
         function testDispatchFiresEvents(testCase)

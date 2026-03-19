@@ -8,14 +8,39 @@ function result = RunTests(~, args)
         testPath = 'tests';
     end
 
+    % Robustness: if it doesn't exist, try prepending 'tests/' or adding '.m'
+    if ~exist(testPath, 'file') && ~exist(testPath, 'dir')
+        % Try prepending 'tests/'
+        if ~startsWith(testPath, ['tests', filesep]) && ~startsWith(testPath, 'tests/')
+            altPath = fullfile('tests', testPath);
+            if exist(altPath, 'file') || exist(altPath, 'dir')
+                testPath = altPath;
+            elseif exist([altPath, '.m'], 'file')
+                testPath = [altPath, '.m'];
+            end
+        end
+        
+        % Try adding '.m' if still not found
+        if ~exist(testPath, 'file') && ~exist(testPath, 'dir') && ~endsWith(testPath, '.m')
+            if exist([testPath, '.m'], 'file')
+                testPath = [testPath, '.m'];
+            end
+        end
+    end
+
     if ~isfolder(testPath) && ~isfile(testPath)
-        error('matl_agent:RunTests:pathNotFound', 'Path not found: %s', testPath);
+        result = sprintf('Error: Path not found: %s. Please ensure the path is correct relative to the project root.', testPath);
+        return;
     end
 
     try
         % Using evalc to capture test runner output
         % And matlab.unittest for execution
-        code = sprintf('import matlab.unittest.TestSuite;\nsuite = TestSuite.fromFolder("%s");\nimport matlab.unittest.TestRunner;\nrunner = TestRunner.withTextOutput;\nres = runner.run(suite);', testPath);
+        if isfile(testPath)
+            code = sprintf('import matlab.unittest.TestSuite;\nsuite = TestSuite.fromFile("%s");\nimport matlab.unittest.TestRunner;\nrunner = TestRunner.withTextOutput;\nres = runner.run(suite);', testPath);
+        else
+            code = sprintf('import matlab.unittest.TestSuite;\nsuite = TestSuite.fromFolder("%s");\nimport matlab.unittest.TestRunner;\nrunner = TestRunner.withTextOutput;\nres = runner.run(suite);', testPath);
+        end
 
         output = evalc(code);
 

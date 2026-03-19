@@ -21,7 +21,7 @@ classdef TestCmdWindowAdapter < matlab.unittest.TestCase
         end
 
         function testConstructorThrowsWithoutAgent(testCase)
-            testCase.verifyError(@() CmdWindowAdapter(), 'matl_agent:CmdWindowAdapter:missingAgent');
+            testCase.verifyError(@() CmdWindowAdapter(), 'mage:CmdWindowAdapter:missingAgent');
         end
 
         function testEventsTriggerHandlers(testCase)

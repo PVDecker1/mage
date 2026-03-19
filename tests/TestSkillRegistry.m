@@ -40,8 +40,10 @@ classdef TestSkillRegistry < matlab.unittest.TestCase
             cfg = struct();
             registry = SkillRegistry(cfg);
 
-            % Force path to temp env
+            % Force path to temp env and clear global path for isolation
             registry.SkillPath = testCase.TempDir;
+            registry.GlobalPath = 'non_existent_folder_xyz';
+            registry.Available = containers.Map('KeyType', 'char', 'ValueType', 'char');
             registry.discoverSkills();
 
             testCase.verifyTrue(isKey(registry.Available, testCase.SkillName));
@@ -56,6 +58,8 @@ classdef TestSkillRegistry < matlab.unittest.TestCase
             cfg = struct();
             registry = SkillRegistry(cfg);
             registry.SkillPath = testCase.TempDir;
+            registry.GlobalPath = 'non_existent_folder_xyz';
+            registry.Available = containers.Map('KeyType', 'char', 'ValueType', 'char');
             registry.discoverSkills();
 
             content = registry.loadSkill(testCase.SkillName);

@@ -1,5 +1,5 @@
 classdef ContextManager < handle
-    % ContextManager Manages multi-tiered context for MATL-AGENT.
+    % ContextManager Manages multi-tiered context for Mage.
     %   T1: Project config (always stays)
     %   T2: Session state (summarized across compactions)
     %   T3: In-memory conversation (gets auto-compacted when full)
@@ -78,14 +78,14 @@ classdef ContextManager < handle
             %   messageStruct must follow OpenAI format (role, content).
 
             if ~isstruct(messageStruct) || ~isfield(messageStruct, 'role')
-                error('matl_agent:ContextManager:invalidFormat', 'Message must be a struct with at least a role field.');
+                error('mage:ContextManager:invalidFormat', 'Message must be a struct with at least a role field.');
             end
             
             % Allow missing content if tool_calls or tool_call_id is present
             if ~isfield(messageStruct, 'content') && ...
                ~isfield(messageStruct, 'tool_calls') && ...
                ~isfield(messageStruct, 'tool_call_id')
-                error('matl_agent:ContextManager:missingContent', 'Message must have content unless it is a tool call/result.');
+                error('mage:ContextManager:missingContent', 'Message must have content unless it is a tool call/result.');
             end
 
             % Ensure content field exists for consistency if it's missing
@@ -178,6 +178,15 @@ classdef ContextManager < handle
 
             % Simple approximation: 4 chars per token
             tokens = round(totalChars / 4);
+        end
+        function msg = pop(obj)
+            % pop Removes and returns the last message from the T3 conversation history.
+            if isempty(obj.T3_Conversation)
+                msg = [];
+                return;
+            end
+            msg = obj.T3_Conversation{end};
+            obj.T3_Conversation(end) = [];
         end
     end
 end

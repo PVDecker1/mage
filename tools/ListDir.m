@@ -11,7 +11,7 @@ function result = ListDir(~, args)
     end
 
     if ~isfolder(dirPath)
-        error('matl_agent:ListDir:notDir', 'Directory not found: %s', dirPath);
+        error('mage:ListDir:notDir', 'Directory not found: %s', dirPath);
     end
 
     try

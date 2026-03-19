@@ -3,7 +3,7 @@ function result = WebFetch(~, args)
     %   args must contain 'url'.
 
     if ~isfield(args, 'url')
-        error('matl_agent:WebFetch:missingArgs', 'Missing url argument');
+        error('mage:WebFetch:missingArgs', 'Missing url argument');
     end
 
     url = args.url;

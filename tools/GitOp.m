@@ -14,12 +14,12 @@ function result = GitOp(~, args)
             displayCmd = args.op;
         end
     else
-        error('matl_agent:GitOp:missingArgs', 'Missing op or command argument');
+        error('mage:GitOp:missingArgs', 'Missing op or command argument');
     end
 
     % Ensure no malicious commands appended
     if contains(fullGitCmd, ';') || contains(fullGitCmd, '&') || contains(fullGitCmd, '|')
-        error('matl_agent:GitOp:invalidChars', 'Invalid characters in git command.');
+        error('mage:GitOp:invalidChars', 'Invalid characters in git command.');
     end
 
     try

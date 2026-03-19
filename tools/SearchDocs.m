@@ -3,7 +3,7 @@ function result = SearchDocs(~, args)
     %   args must contain 'query'.
 
     if ~isfield(args, 'query')
-        error('matl_agent:SearchDocs:missingArgs', 'Missing query argument');
+        error('mage:SearchDocs:missingArgs', 'Missing query argument');
     end
 
     query = args.query;

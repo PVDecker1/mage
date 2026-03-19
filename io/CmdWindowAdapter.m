@@ -1,5 +1,5 @@
 classdef CmdWindowAdapter < handle
-    % CmdWindowAdapter Handles Command Window I/O for MATL-AGENT.
+    % CmdWindowAdapter Handles Command Window I/O for Mage.
     %   Subscribes to AgentLoop events and uses fprintf/input to interact
     %   with the user.
 
@@ -13,7 +13,7 @@ classdef CmdWindowAdapter < handle
             % CmdWindowAdapter Constructor
 
             if nargin < 1 || isempty(agentLoop)
-                error('matl_agent:CmdWindowAdapter:missingAgent', 'Requires an AgentLoop instance.');
+                error('mage:CmdWindowAdapter:missingAgent', 'Requires an AgentLoop instance.');
             end
 
             obj.AgentLoop = agentLoop;
@@ -64,11 +64,14 @@ classdef CmdWindowAdapter < handle
             % Blocks and asks user for input via the Command Window
             promptStr = eventData.Data.prompt;
             userInput = input(promptStr, 's');
+            
+            % Store the response for tools to access
+            eventData.Response = userInput;
 
             % Check for special commands to terminate the loop before pushing
             if strcmp(userInput, '/exit') || strcmp(userInput, '/quit')
                 obj.AgentLoop.IsRunning = false;
-                fprintf('Exiting MATL-AGENT...\n');
+                fprintf('Exiting Mage...\n');
                 return;
             end
 
